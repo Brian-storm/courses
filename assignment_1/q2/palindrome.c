@@ -8,7 +8,7 @@ void checkPalindrome(stackADT stack);
 
 int main (void) {
     stackADT stringStack = EmptyStack();
-    char input[80] = "";
+    char input[81] = "";
 
     do {
         fgets(input, sizeof(input), stdin);
