@@ -33,92 +33,80 @@ queueADT CounterQueue[3];
 customerADT CreateCustomer(char type, int serviceTime, float amount);
 int CheckEmptyQueues(queueADT queues[]);
 void ServeCustomer(counterT counters[], queueADT queues[], int[][2]);
+void AnnounceResult(int totalWait[][2], counterT Counter[3]);
 
 
 int main (void) {
     for (int i = 0; i < 3; i++)
         CounterQueue[i] = EmptyQueue();
-    queueADT MainQueue =EmptyQueue();
-
     
     FILE *fp = fopen("bank.dat", "r");
     if (fp == NULL)
-    return 1;
+        return 1;
     
     char type, dump;
     int serviceTime;
     float amount;
 
-    int flag = 1;
-    while(flag) {
+    int isReadFile = 1;
+    int minuteCnt = 0;
+    int totalWait[3][2] = {{0, 0}, {1, 0}, {2, 0}};
+
+    while(isReadFile || CheckEmptyQueues(CounterQueue) != 3) {
+        // printf("%d %d\n", isReadFile, CheckEmptyQueues(CounterQueue));
+
         int fscan_res = fscanf(fp, "%c %d %f", &type, &serviceTime, &amount);
         
-        if (fscan_res == 3) {
-            fscanf(fp, "%c", &dump); // consume the new line character of the line
-            Enqueue(MainQueue, CreateCustomer(type, serviceTime, amount));
-            printf("%c %d %f\n", type, serviceTime, amount);
+        if (isReadFile) {
+            customerADT customer = NULL;
+            
+            if (fscan_res == 3) {
+                fscanf(fp, "%c", &dump); // consume the new line character of the line
+                customer = CreateCustomer(type, serviceTime, amount);
+            } else if (fscan_res == 1) {
+                ServeCustomer(Counter, CounterQueue, totalWait);
+                minuteCnt++;
+                continue;
+            } else if (fscan_res == EOF)
+                isReadFile = 0;
+            else 
+                exit(EXIT_FAILURE);  // Error
+        
+            if (customer != NULL) {  // Customers go to their queues
+                switch (customer->customerType) {
+                    case 'C': {
+                        Enqueue(CounterQueue[0], customer);
+                        totalWait['C' - 'A'][0] += (QueueLength(CounterQueue[0]) > 1);
+                        break;
+                    }
+                    case 'B': {
+                        int idx = (QueueLength(CounterQueue[0]) < QueueLength(CounterQueue[1]))? 0: 1;
+                        Enqueue(CounterQueue[idx], customer);
+                        totalWait['B' - 'A'][0] += (QueueLength(CounterQueue[idx]) > 1);
+                        break;
+                    }
+                    case 'A': {
+                        int comp = (QueueLength(CounterQueue[0]) < QueueLength(CounterQueue[1]))? 0: 1;
+                        int idx = (QueueLength(CounterQueue[comp]) < QueueLength(CounterQueue[2]))? comp: 2;
+                        Enqueue(CounterQueue[idx], customer);
+                        totalWait['A' - 'A'][0] += (QueueLength(CounterQueue[idx]) > 1);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+            }   
         }
-        else if (fscan_res == 1) {
-            Enqueue(MainQueue, CreateCustomer('D', 0, 0));
-            printf("empty line!\n");
-        } else {
-            flag = 0;  //EOF or error
-        }
-    }
-    
-    fclose(fp);
-    
-    /* Checking the MainQueue*/
-    // printf("\n\n\n\n");
-    // while (!QueueIsEmpty(MainQueue)) {
-    //     customerADT customer = Dequeue(MainQueue);
-    //     printf("%c ", customer->customerType);
-    //     printf("%d ", customer->serviceTime);
-    //     printf("%f\n", customer->amount);
-    // }
-    
-    int totalWait[3][2] = {{0, 0}, {1, 0}, {2, 0}};
-    int minuteCnt = 0;
-    while(!QueueIsEmpty(MainQueue) || CheckEmptyQueues(CounterQueue) < 3) {
-        // printf("\n\n\n\n%d\n", minuteCnt);
-        // printf("MainQueue empty %d. #EmptyQueues %d\n", QueueIsEmpty(MainQueue), CheckEmptyQueues(CounterQueue));
 
-        customerADT customer = Dequeue(MainQueue);
-        if (customer != NULL) {
-            switch (customer->customerType) {
-                case 'C': {
-                    Enqueue(CounterQueue[0], customer);
-                    totalWait['C' - 'A'][0] += (QueueLength(CounterQueue[0]) > 1)? 1: 0;
-                    break;
-                }
-                case 'B': {
-                    int idx = (QueueLength(CounterQueue[0]) < QueueLength(CounterQueue[1]))? 0: 1;
-                    Enqueue(CounterQueue[idx], customer);
-                    totalWait['B' - 'A'][0] += (QueueLength(CounterQueue[idx]) > 1)? 1: 0;
-                    break;
-                }
-                case 'A': {
-                    int comp = (QueueLength(CounterQueue[0]) < QueueLength(CounterQueue[1]))? 0: 1;
-                    int idx = (QueueLength(CounterQueue[comp]) < QueueLength(CounterQueue[2]))? comp: 2;
-                    Enqueue(CounterQueue[idx], customer);
-                    totalWait['A' - 'A'][0] += (QueueLength(CounterQueue[idx]) > 1)? 1: 0;
-                    break;
-                }
-                default:
-                    break;
-            }
-        }
-        
-        for (int i = 0; i < 3; i++)
-            totalWait[i][1] += totalWait[i][0];
-        
         // Update the counter & total queuing hours
         ServeCustomer(Counter, CounterQueue, totalWait);
         minuteCnt += 1;
-        // printf("Empty? MainQueue and #CounterQueue %d %d %d\n", QueueIsEmpty(MainQueue), CheckEmptyQueues(CounterQueue), minuteCnt);
     }
+    fclose(fp);
+    AnnounceResult(totalWait, Counter);
+}
 
-
+void AnnounceResult(int totalWait[][2], counterT Counter[3]) {
     // Average time Type A customer need to wait (floating point value with 2 decimal places).
     printf("%.2f\n", totalWait['A' - 'A'][1]);
 
@@ -154,7 +142,6 @@ int main (void) {
 
     // Total number of customers counter 0 serves (int value).
     printf("%d\n", Counter[0].numberOfCustomersServed);
-
 }
 
 customerADT CreateCustomer(char type, int serviceTime, float amount) {
@@ -169,25 +156,29 @@ customerADT CreateCustomer(char type, int serviceTime, float amount) {
 
 void ServeCustomer(counterT counters[], queueADT queues[], int totalWait[][2]) {
     for (int i = 0; i < 3; i++) {
+        // Update total waiting #customer to find the avg time for each type later
+        totalWait[i][1] += totalWait[i][0];
+
+        // Update Counter.maxQueueLength
         int a = QueueLength(queues[i]) - 1;
         int b = counters[i].maxQueueLength;
         counters[i].maxQueueLength = (a > b)? a: b;
         counters[i].maxQueueLength = (counters[i].maxQueueLength < 0)? 0: counters[i].maxQueueLength;
         
         queueElementT customer = QueueFrontPeek(queues[i]);
-        if (customer == NULL)
-            continue;
-        
-        printf("Customer %i servicetime %d\n", i, customer->serviceTime);
-        if (--customer->serviceTime == 0) {
-            Dequeue(queues[i]);
-            counters[i].numberOfCustomersServed += 1;
-            counters[i].netAmountReceived += customer->amount;
-            printf("Counter %d amount %.2f\n", i, counters[i].netAmountReceived);
-            
-            customerADT customerNext = QueueFrontPeek(queues[i]);
-            if (customerNext != NULL)
-                totalWait[customerNext->customerType - 'A'][0]--;
+        if (customer != NULL) {
+            // printf("Customer %i servicetime %d\n", i, customer->serviceTime);
+            if (--customer->serviceTime == 0) {  // Done Serving a customer
+                Dequeue(queues[i]);
+                counters[i].numberOfCustomersServed += 1;  // Update Counter.numberOfCustomerServed
+                counters[i].netAmountReceived += customer->amount;  // Update Counter.netAmountReceived
+                // printf("Counter %d amount %.2f\n", i, counters[i].netAmountReceived);
+                
+                // Update the total waiting #customer (only people queuing should be counted, i.e. originally QueueLength>= 2)
+                customerADT customerNext = QueueFrontPeek(queues[i]);
+                if (customerNext != NULL)
+                    totalWait[customerNext->customerType - 'A'][0]--;
+            }
         }
 
     }
