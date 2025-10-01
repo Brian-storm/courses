@@ -58,12 +58,12 @@ int main (void) {
     int customerTrack[3][3] = {0};  //#totalQueuingTime, #curTotalCustomer, #overallTotalCustomer (Categorized by customerType)
 
     while(isReadFile || CheckEmptyQueues() != 3) {
-        printf("\n");
+        // printf("\n");
         // printf("ReadFile? #EmptyQueues? %d %d\n", isReadFile, CheckEmptyQueues());
 
         // Read file
         int fscan_res = fscanf(fp, "%c %d %f", &type, &serviceTime, &amount);
-        printf("MinuteCnt %d th => ", minuteCnt);
+        // printf("MinuteCnt %d th => ", minuteCnt);
         
         if (isReadFile) {
             customerADT customer = NULL;
@@ -71,9 +71,9 @@ int main (void) {
             if (fscan_res == 3) {
                 fscanf(fp, "%c", &dump); // consume the new line character in the end of the line
                 customer = CreateCustomer(type, serviceTime, amount);
-                printf("entry of type %c\n", customer->customerType);
+                // printf("entry of type %c\n", customer->customerType);
             } else if (fscan_res == 1) {
-                printf("no one enters\n", minuteCnt);
+                // printf("no one enters\n", minuteCnt);
             } else if (fscan_res == EOF) {
                 isReadFile = 0;
                 // printf("EOF!\n");
@@ -90,7 +90,7 @@ int main (void) {
 
         // Update CounterQueue and total queuing hours
         ServeCustomer(remainingTime, customerTrack);
-        printf("Counter012 remainingTime %d %d %d\n", remainingTime[0], remainingTime[1], remainingTime[2]);
+        // printf("Counter012 remainingTime %d %d %d\n", remainingTime[0], remainingTime[1], remainingTime[2]);
 
         minuteCnt += 1;
     }
@@ -137,7 +137,7 @@ void UpdateCounter(customerADT customer, int remainingTime[3], int customerTrack
     
     // Enqueue and Update Counter
     Enqueue(CounterQueue[counterIdx], customer);
-    int queueLength = QueueLength(CounterQueue[counterIdx]);
+    int queueLength = QueueLength(CounterQueue[counterIdx]) - 1;
     if (queueLength > Counter[counterIdx].maxQueueLength) {
         Counter[counterIdx].maxQueueLength = queueLength;
     }
@@ -159,7 +159,7 @@ void ServeCustomer(int remainingTime[3], int customerTrack[][3]) {
     customerADT customer = NULL;
     for (int i = 0; i < 3; i++) {
         if ((remainingTime[i] > 0) && (--remainingTime[i] == 0)) {
-            printf("Done queuing!\n", remainingTime[i]);
+            // printf("Done queuing!\n", remainingTime[i]);
             customerADT firstCustomer = Dequeue(CounterQueue[i]);
 
             if (!QueueIsEmpty(CounterQueue[i])) {
@@ -181,9 +181,9 @@ void ServeCustomer(int remainingTime[3], int customerTrack[][3]) {
 
         }
     }
-    printf("A customerTrack: %d %d %d\n", customerTrack[0][0], customerTrack[0][1], customerTrack[0][2]);
-    printf("B customerTrack: %d %d %d\n", customerTrack[1][0], customerTrack[1][1], customerTrack[1][2]);
-    printf("C customerTrack: %d %d %d\n", customerTrack[2][0], customerTrack[2][1], customerTrack[2][2]);
+    // printf("A customerTrack: %d %d %d\n", customerTrack[0][0], customerTrack[0][1], customerTrack[0][2]);
+    // printf("B customerTrack: %d %d %d\n", customerTrack[1][0], customerTrack[1][1], customerTrack[1][2]);
+    // printf("C customerTrack: %d %d %d\n", customerTrack[2][0], customerTrack[2][1], customerTrack[2][2]);
 }
 
 void AnnounceResult(int customerTrack[][3]) {
